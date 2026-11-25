@@ -1,0 +1,43 @@
+services:
+  api:
+    build:
+      context: ../../Documents/redator-de-dados-sensiveis
+    command: uvicorn api:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+      # Em produção, substitua pela origem real do front-end.
+      # CORS_ORIGINS: "https://privacydocs.example.com"
+    ports:
+      - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    # Hot reload do Python sem trazer .venv, corpus nem imagens para o container.
+    volumes:
+      - ../../Documents/redator-de-dados-sensiveis/api.py:/app/api.py:ro
+      - ../../Documents/redator-de-dados-sensiveis/detector.py:/app/detector.py:ro
+      - ../../Documents/redator-de-dados-sensiveis/ocr.py:/app/ocr.py:ro
+      - ../../Documents/redator-de-dados-sensiveis/ocr_posicoes.py:/app/ocr_posicoes.py:ro
+      - ../../Documents/redator-de-dados-sensiveis/presidio_detector.py:/app/presidio_detector.py:ro
+      - ../../Documents/redator-de-dados-sensiveis/regex_parser.py:/app/regex_parser.py:ro
+      - ../../Documents/redator-de-dados-sensiveis/test_api.py:/app/test_api.py:ro
+
+  web:
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    volumes:
+      - ./src:/app/src
+      - ./index.html:/app/index.html
+      - ./vite.config.ts:/app/vite.config.ts
